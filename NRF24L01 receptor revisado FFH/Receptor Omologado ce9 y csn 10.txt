@@ -1,0 +1,69 @@
+/**
+  Tutorial Arduino: Módulo NRF24L01
+  Más información en:
+http://www.leantec.es/blog/44_Tutorial-Arduino--Modulo-NRF24L01.html
+
+ * Pins:
+ * Hardware SPI:
+ * MISO -> 12
+ * MOSI -> 11
+ * SCK -> 13
+ *
+ * Configurable:
+ * CE -> 9
+ * CSN -> 10
+ *
+ */
+
+#include <SPI.h>
+#include <Mirf.h>
+#include <nRF24L01.h>
+#include <MirfHardwareSpiDriver.h>
+
+int led=4; //Declaramos el led en el pin 4
+unsigned long time=0;// Variable para controlar el tiempo entre dato y dato
+int estadoled=0;   //Variable para almacenar el estado del rele
+
+//----------------------------- Configuramos Ardunio ---------------------------------------
+//------------------------------------------------------------------------------------------
+void setup(void){
+  Serial.begin(9600);
+  Mirf.cePin = 9;                // Cambiamos el pin CE al pin 8 de arduino
+  Mirf.csnPin = 10;              //Cambiamos el pin CSN al pin 7 de arduino
+  Mirf.spi = &MirfHardwareSpi;    // Configuramos el SPI de Arduino por Hardware
+  Mirf.init();                    // Inciamos el módulo de RF
+  Mirf.setRADDR((byte *)"serv1"); // Indicamos la dirección para recibir datos
+  Mirf.payload = 1;// Indicamos datos que se espera recibir(1, estado del pusador)
+  Mirf.config();                  // Configuramos el módulo de RF
+  time=0;                         // Ponemos a 0 el tiempo
+  pinMode(led, OUTPUT);             // Configuramos el pin 6 como salida del led
+
+}
+//--------------------------- Arrancamos el programa ---------------------------------------
+//------------------------------------------------------------------------------------------
+void loop()
+{
+  byte datos[1];      // Buffer para almacenar los datos
+  if(!Mirf.isSending() && Mirf.dataReady()){ // Esperamos recibir un dato
+    Mirf.getData(datos);       // Copiamos al buffer los datos recibidos
+    time = millis();           // Almacenamos el tiempo en la variable
+
+    if(datos[0]==1){ //El estado del led cambia cada vez que el pulsador esta activado(una sola vez)
+      estadoled=!estadoled;
+      digitalWrite(led, estadoled);
+      while(datos[0] == 1){
+        Mirf.getData(datos);       // Copiamos al buffer los datos recibidos
+      }
+    }  
+  }
+
+  if ( ( millis() - time ) > 1000 ) {//Comprobamos si desde la última vez que recibimos un dato hasta ahora ha pasado mas de 1 seg
+
+    Serial.println("Error de recepcion de datos"); //Línea para ver en el terminal que recibe  
+    delay(500);                         //Paramos 0,5 seg 
+  }
+  else{                                 //Si todo está correcto y estamos recibiendo datos, seguimos
+
+  }
+
+}
